@@ -216,6 +216,7 @@ class Client(Methods):
         in_memory: bool = None,
         phone_number: str = None,
         phone_code: str = None,
+        code_fn: Callable = None,
         password: str = None,
         workers: int = WORKERS,
         workdir: str = WORKDIR,
@@ -254,6 +255,7 @@ class Client(Methods):
         self.sleep_threshold = sleep_threshold
         self.hide_password = hide_password
         self.max_concurrent_transmissions = max_concurrent_transmissions
+        self.code_fn = code_fn
 
         self.executor = ThreadPoolExecutor(self.workers, thread_name_prefix="Handler")
 
@@ -376,8 +378,11 @@ class Client(Methods):
         print(f"The confirmation code has been sent via {sent_code_descriptions[sent_code.type]}")
 
         while True:
-            if not self.phone_code:
+            if not self.phone_code and not self.code_fn:
                 self.phone_code = await ainput("Enter confirmation code: ")
+            
+            if self.code_fn:
+                self.phone_code = await self.code_fn(self.phone_code)
 
             try:
                 signed_in = await self.sign_in(self.phone_number, sent_code.phone_code_hash, self.phone_code)
